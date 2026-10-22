@@ -7,19 +7,35 @@ import {
   StyleSheet,
   ScrollView,
   StatusBar,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuthStore } from '../store/useAuthStore';
 
 export default function LoginScreen({ navigation }) {
+  // --- Store Zustand ---
+  const { login, isLoading, error, clearError } = useAuthStore();
+
   // --- États du formulaire (States) ---
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
-  // --- Fonction de connexion ---
-  const handleLogin = () => {
-    console.log('Connexion avec :', email, password);
+  // --- Fonction de connexion liée au Backend ---
+  const handleLogin = async () => {
+    if (!email.trim() || !password) {
+      Alert.alert('Champs obligatoires', 'Veuillez saisir votre email et votre mot de passe.');
+      return;
+    }
+
+    const result = await login(email.trim(), password);
+    if (result.success) {
+      navigation?.navigate('Home');
+    } else {
+      Alert.alert('Échec de la connexion', result.message);
+    }
   };
 
   return (
@@ -118,13 +134,25 @@ export default function LoginScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
+          {/* Message d'erreur s'il y a un problème */}
+          {error && (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>⚠️ {error}</Text>
+            </View>
+          )}
+
           {/* Bouton Se connecter */}
           <TouchableOpacity
-            style={styles.primaryButton}
+            style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
             activeOpacity={0.85}
             onPress={handleLogin}
+            disabled={isLoading}
           >
-            <Text style={styles.primaryButtonText}>Se connecter →</Text>
+            {isLoading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.primaryButtonText}>Se connecter →</Text>
+            )}
           </TouchableOpacity>
 
           {/* Séparateur "Ou continuer avec" */}
@@ -344,6 +372,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 5,
     elevation: 3,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  errorBox: {
+    backgroundColor: '#FDEDED',
+    borderWidth: 1,
+    borderColor: '#F5C6CB',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 14,
+  },
+  errorText: {
+    color: '#D32F2F',
+    fontSize: 12,
+    textAlign: 'center',
+    fontWeight: '500',
   },
   primaryButtonText: {
     color: '#FFFFFF',

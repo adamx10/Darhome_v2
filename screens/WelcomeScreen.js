@@ -3,27 +3,27 @@ import { View, Text, TouchableOpacity, StyleSheet, StatusBar } from 'react-nativ
 import { useVideoPlayer, VideoView } from 'expo-video';
 
 // Source de la vidéo dans le dossier assets
-const videoSource = require('../assets/intro.mp4');
+// const videoSource = require('../assets/intro.mp4');
 
 export default function WelcomeScreen({ navigation }) {
   // Configuration du lecteur vidéo : boucle (loop), muet, et lecture automatique
-  const player = useVideoPlayer(videoSource, (player) => {
-    player.loop = true;
-    player.muted = true;
-    player.play();
-  });
+  // const player = useVideoPlayer(videoSource, (player) => {
+  //   player.loop = true;
+  //   player.muted = true;
+  //   player.play();
+  // });
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
       {/* Vidéo plein écran en arrière-plan */}
-      <VideoView
+      {/* <VideoView
         player={player}
         style={StyleSheet.absoluteFillObject}
         contentFit="cover"
         nativeControls={false}
-      />
+      /> */}
 
       {/* Voile sombre pour garantir la lisibilité du texte et du bouton */}
       <View style={styles.overlay} />

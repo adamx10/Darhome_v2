@@ -7,10 +7,16 @@ import {
   StyleSheet,
   ScrollView,
   StatusBar,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuthStore } from '../store/useAuthStore';
 
 export default function RegisterScreen({ navigation }) {
+  // --- Store Zustand ---
+  const { register, isLoading, error } = useAuthStore();
+
   // --- États (States) simples pour débutant ---
   // Rôle sélectionné : 'tenant' (Locataire) ou 'owner' (Propriétaire)
   const [userType, setUserType] = useState('tenant');
@@ -32,17 +38,60 @@ export default function RegisterScreen({ navigation }) {
   const [isOwnerCertified, setIsOwnerCertified] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
-  // --- Fonction d'inscription ---
-  const handleRegister = () => {
-    console.log('Inscription :', {
-      userType,
-      fullName,
-      birthDate,
-      cin,
-      phone,
-      email,
+  // --- Fonction d'inscription liée au Backend ---
+  const handleRegister = async () => {
+    // 1. Validation des champs
+    if (!fullName.trim() || !email.trim() || !password || !phone.trim()) {
+      Alert.alert(
+        'Champs obligatoires',
+        'Veuillez renseigner votre nom complet, email, téléphone et mot de passe.'
+      );
+      return;
+    }
+
+    if (!acceptedTerms) {
+      Alert.alert(
+        'Conditions requises',
+        'Veuillez accepter les Conditions Générales et la Politique de Confidentialité.'
+      );
+      return;
+    }
+
+    if (userType === 'owner' && !isOwnerCertified) {
+      Alert.alert(
+        'Certification requise',
+        'Veuillez certifier sur l’honneur avoir plus de 18 ans et être le propriétaire légal.'
+      );
+      return;
+    }
+
+    // 2. Préparation du payload pour le backend Express
+    // Rôle : 'client' (Locataire) ou 'proprietaire' (Propriétaire)
+    const role = userType === 'owner' ? 'proprietaire' : 'client';
+    const userData = {
+      nom: fullName.trim(),
+      email: email.trim(),
       password,
-    });
+      telephone: phone.trim(),
+      role,
+    };
+
+    // 3. Appel de l'action Zustand
+    const result = await register(userData);
+    if (result.success) {
+      Alert.alert(
+        'Compte créé avec succès ! 🎉',
+        'Votre compte DARHOME a été enregistré. Connectez-vous dès maintenant.',
+        [
+          {
+            text: 'Se connecter',
+            onPress: () => navigation?.navigate('Login'),
+          },
+        ]
+      );
+    } else {
+      Alert.alert("Échec de l'inscription", result.message);
+    }
   };
 
   return (
@@ -154,7 +203,7 @@ export default function RegisterScreen({ navigation }) {
               <Text style={styles.inputIcon}>👤</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Ex: Mehdi El Alami"
+                placeholder="Ex: adam"
                 placeholderTextColor="#A0A0A0"
                 value={fullName}
                 onChangeText={setFullName}
@@ -357,17 +406,29 @@ export default function RegisterScreen({ navigation }) {
             </Text>
           </TouchableOpacity>
 
+          {/* Message d'erreur s'il y a un problème */}
+          {error && (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>⚠️ {error}</Text>
+            </View>
+          )}
+
           {/* Bouton d'action principal */}
           <TouchableOpacity
-            style={styles.primaryButton}
+            style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
             activeOpacity={0.85}
             onPress={handleRegister}
+            disabled={isLoading}
           >
-            <Text style={styles.primaryButtonText}>
-              {userType === 'owner'
-                ? "Continuer l'inscription Propriétaire →"
-                : 'Créer mon compte DARHOME →'}
-            </Text>
+            {isLoading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.primaryButtonText}>
+                {userType === 'owner'
+                  ? "Continuer l'inscription Propriétaire →"
+                  : 'Créer mon compte DARHOME →'}
+              </Text>
+            )}
           </TouchableOpacity>
 
           {/* Séparateur */}
@@ -763,6 +824,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 5,
     elevation: 3,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  errorBox: {
+    backgroundColor: '#FDEDED',
+    borderWidth: 1,
+    borderColor: '#F5C6CB',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 14,
+  },
+  errorText: {
+    color: '#D32F2F',
+    fontSize: 12,
+    textAlign: 'center',
+    fontWeight: '500',
   },
   primaryButtonText: {
     color: '#FFFFFF',
